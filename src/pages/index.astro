@@ -19,15 +19,58 @@ const games = await getAllGames(getDatabase());
     />
 
     <div>
-      <h2 class="text-2xl font-medium mb-6 text-slate-100">Featured Games</h2>
+      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
+        <h2 class="text-2xl font-medium text-slate-100">Featured Games</h2>
+        {games.length > 0 && (
+          <form role="search" class="w-full sm:max-w-sm" data-testid="game-search-form">
+            <label for="game-search" class="block text-sm font-medium text-slate-300 mb-2">Search games by title</label>
+            <input
+              id="game-search"
+              name="query"
+              type="search"
+              placeholder="Search by title"
+              autocomplete="off"
+              class="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              data-testid="game-search-input"
+            />
+          </form>
+        )}
+      </div>
 
       {games.length === 0 ? (
         <EmptyState text="No games available at the moment." />
       ) : (
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="games-grid">
-          {games.map((game) => <GameCard game={game} />)}
-        </div>
+        <>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="games-grid">
+            {games.map((game) => <GameCard game={game} />)}
+          </div>
+          <div class="hidden mt-6" data-testid="search-empty-state">
+            <EmptyState text="No games match your search." />
+          </div>
+        </>
       )}
     </div>
   </div>
 </Layout>
+
+{games.length > 0 && (
+  <script>
+    import { filterGamesByTitle } from '../lib/search';
+
+    const searchInput = document.querySelector<HTMLInputElement>('#game-search');
+    const gameCards = Array.from(document.querySelectorAll<HTMLElement>('[data-testid="game-card"]'));
+    const emptyState = document.querySelector<HTMLElement>('[data-testid="search-empty-state"]');
+    const games = gameCards.map((card) => ({
+      title: card.dataset.gameTitle ?? '',
+    }));
+
+    searchInput?.addEventListener('input', () => {
+      const visibleGames = filterGamesByTitle(games, searchInput.value);
+
+      gameCards.forEach((card, index) => {
+        card.hidden = !visibleGames.includes(games[index]);
+      });
+      emptyState?.classList.toggle('hidden', visibleGames.length > 0);
+    });
+  </script>
+)}
