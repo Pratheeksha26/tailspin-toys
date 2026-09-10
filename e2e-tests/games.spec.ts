@@ -21,6 +21,26 @@ test.describe('Game Listing and Navigation', () => {
     await expect(page.locator('[data-testid="game-card"]:visible')).toHaveCount(0);
   });
 
+  test('should sort games by title and rating', async ({ page }) => {
+    await page.goto('/');
+    const sortSelect = page.getByTestId('game-sort');
+    await expect(sortSelect).toHaveAccessibleName('Sort games');
+
+    await sortSelect.selectOption('title-desc');
+    await expect(page.locator('[data-testid="game-title"]:visible').first()).toHaveText('Virtual Server Simulator');
+
+    await sortSelect.selectOption('rating-desc');
+    const visibleCards = page.locator('[data-testid="game-card"]:visible');
+    const ratings = await visibleCards.evaluateAll((cards) => cards.map((card) => {
+      const value = card.getAttribute('data-star-rating');
+      return value === '' ? null : Number(value);
+    }));
+    expect(ratings.length).toBeGreaterThan(1);
+    const rated = ratings.filter((rating): rating is number => rating !== null);
+    expect(rated).toEqual([...rated].sort((left, right) => right - left));
+    expect(ratings.slice(rated.length).every((rating) => rating === null)).toBeTruthy();
+  });
+
   test('should display games with titles on index page', async ({ page }) => {
     await test.step('Navigate to homepage', async () => {
       await page.goto('/');

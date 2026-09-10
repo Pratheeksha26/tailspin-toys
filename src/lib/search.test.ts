@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Game } from '../types/game';
-import { filterGamesByTitle } from './search';
+import { filterGamesByTitle, sortGames } from './search';
 
 const games: Game[] = [
     {
@@ -24,6 +24,22 @@ const games: Game[] = [
 describe('filterGamesByTitle', () => {
     it('matches titles case-insensitively', () => {
         expect(filterGamesByTitle(games, 'devops').map((game) => game.title)).toEqual(['DevOps Dominion']);
+    });
+
+    describe('sortGames', () => {
+        it('sorts titles in ascending and descending order', () => {
+            expect(sortGames(games, 'title-asc').map((game) => game.title)).toEqual(['DevOps Dominion', 'Pipeline Conquest']);
+            expect(sortGames(games, 'title-desc').map((game) => game.title)).toEqual(['Pipeline Conquest', 'DevOps Dominion']);
+        });
+
+        it('sorts ratings highest first and places unrated games last', () => {
+            const ratedGames = [...games, { ...games[0], id: 3, title: 'Unrated', starRating: null }];
+            expect(sortGames(ratedGames, 'rating-desc').map((game) => game.title)).toEqual([
+                'DevOps Dominion',
+                'Pipeline Conquest',
+                'Unrated',
+            ]);
+        });
     });
 
     it('ignores surrounding whitespace', () => {
