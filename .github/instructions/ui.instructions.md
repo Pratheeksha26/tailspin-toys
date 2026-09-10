@@ -51,6 +51,14 @@ Refer to technology-specific instruction files:
 - Use props for configuration, not duplication
 - Document component APIs with TypeScript types
 
+### Commenting and documentation philosophy
+
+- Comment the intent behind a decision, not the mechanics of the code below it.
+- Explain why a branch exists, why a workaround is necessary, or which trade-off informed the implementation.
+- Remove comments that merely restate the code in plain English; prefer self-explanatory code and a short API description instead.
+- Treat stale comments as bugs: update or delete them in the same change that touches the affected logic.
+- Reusable Astro components should document their public `Props` contract so the component API is clear without reading the implementation.
+
 ## Development Workflow
 
 1. **Choose the right tool**: 
