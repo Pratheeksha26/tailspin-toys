@@ -88,6 +88,18 @@ const publishers = [...new Map(
               </div>
             </fieldset>
           </form>
+          <div class="mb-8 max-w-sm">
+            <label for="game-sort" class="block text-sm font-medium text-slate-300 mb-2">Sort games</label>
+            <select
+              id="game-sort"
+              class="w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              data-testid="game-sort"
+            >
+              <option value="title-asc">Title (A-Z)</option>
+              <option value="title-desc">Title (Z-A)</option>
+              <option value="rating-desc">Rating (highest first, unrated last)</option>
+            </select>
+          </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="games-grid">
             {games.map((game) => <GameCard game={game} />)}
           </div>
@@ -105,14 +117,16 @@ const publishers = [...new Map(
 
 {games.length > 0 && (
   <script>
-    import { filterGamesByTitle } from '../lib/search';
+    import { filterGamesByTitle, sortGames, type GameSort } from '../lib/search';
 
     const searchInput = document.querySelector<HTMLInputElement>('#game-search');
     const gameCards = Array.from(document.querySelectorAll<HTMLElement>('[data-testid="game-card"]'));
     const emptyState = document.querySelector<HTMLElement>('[data-testid="search-empty-state"]');
     const searchGames = gameCards.map((card) => ({
       title: card.dataset.gameTitle ?? '',
+      starRating: card.dataset.starRating ? Number(card.dataset.starRating) : null,
     }));
+    const sortSelect = document.querySelector<HTMLSelectElement>('#game-sort');
     const filterForm = document.querySelector('[data-testid="game-filters"]');
     const resultCount = document.querySelector('[data-testid="filter-result-count"]');
     const noFilterResults = document.querySelector<HTMLElement>('[data-testid="no-filter-results"]');
@@ -127,21 +141,28 @@ const publishers = [...new Map(
 
     const updateResults = () => {
       const titleMatches = filterGamesByTitle(searchGames, searchInput?.value ?? '');
+      const sort = (sortSelect?.value ?? 'title-asc') as GameSort;
+      const sortedMatches = sortGames(titleMatches, sort);
       let visibleCount = 0;
 
       gameCards.forEach((card, index) => {
         const categoryMatches = selectedCategories.size === 0 || selectedCategories.has(card.dataset.categoryId ?? '');
         const publisherMatches = selectedPublisher === '' || selectedPublisher === card.dataset.publisherId;
-        const visible = titleMatches.includes(searchGames[index]) && categoryMatches && publisherMatches;
+        const visible = sortedMatches.includes(searchGames[index]) && categoryMatches && publisherMatches;
         card.hidden = !visible;
         if (visible) visibleCount++;
       });
-      emptyState?.classList.toggle('hidden', titleMatches.length > 0);
-      noFilterResults?.classList.toggle('hidden', titleMatches.length === 0 || visibleCount > 0);
+      sortedMatches.forEach((game) => {
+        const gameIndex = searchGames.indexOf(game);
+        if (gameIndex >= 0) gameCards[gameIndex].parentElement?.appendChild(gameCards[gameIndex]);
+      });
+      emptyState?.classList.toggle('hidden', sortedMatches.length > 0);
+      noFilterResults?.classList.toggle('hidden', sortedMatches.length === 0 || visibleCount > 0);
       if (resultCount) resultCount.textContent = `${visibleCount} ${visibleCount === 1 ? 'game' : 'games'} shown`;
     };
 
     searchInput?.addEventListener('input', updateResults);
+    sortSelect?.addEventListener('change', updateResults);
     updateResults();
   </script>
 )}

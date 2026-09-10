@@ -49,6 +49,9 @@ publisher. Multiple categories use an "any selected category" match, while a
 publisher selection is combined with the category filter. Applying filters
 updates the URL so filtered views can be bookmarked or shared.
 
+The catalog can also be sorted by title in either direction or by star rating.
+When sorting by rating, games without a rating are placed after rated games.
+
 ## Database
 
 The SQLite database is built from `db/games.csv` — there is no live data to migrate.
