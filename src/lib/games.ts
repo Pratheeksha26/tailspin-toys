@@ -1,4 +1,4 @@
-import { eq, asc } from 'drizzle-orm';
+import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { Database } from './db';
 import { games, categories, publishers } from '../../db/schema';
 import type { Game } from '../types/game';
@@ -25,6 +25,11 @@ type GameSelectionRow = {
     publisherName: string | null;
 };
 
+export interface GameFilters {
+    categoryIds?: number[];
+    publisherId?: number;
+}
+
 function mapGame(row: GameSelectionRow): Game {
     return {
         id: row.id,
@@ -50,19 +55,56 @@ function baseGamesQuery(db: Database) {
         .leftJoin(publishers, eq(games.publisherId, publishers.id));
 }
 
-/** All games ordered by title. */
-export async function getAllGames(db: Database): Promise<Game[]> {
-    const rows = await baseGamesQuery(db).orderBy(asc(games.title));
+/**
+ * List games matching the selected category and publisher filters.
+ *
+ * @param db - Database client used to query the catalog and related metadata.
+ * @param filters - Optional category IDs and publisher ID to apply.
+ * @returns Matching games ordered alphabetically by title.
+ */
+export async function getFilteredGames(db: Database, filters: GameFilters = {}): Promise<Game[]> {
+    const conditions = [];
+    if (filters.categoryIds && filters.categoryIds.length > 0) {
+        conditions.push(inArray(games.categoryId, filters.categoryIds));
+    }
+    if (filters.publisherId !== undefined) {
+        conditions.push(eq(games.publisherId, filters.publisherId));
+    }
+
+    const rows = await baseGamesQuery(db)
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(asc(games.title));
     return rows.map(mapGame);
 }
 
-/** All game ids ordered by title. */
+/**
+ * List all games ordered by title.
+ *
+ * @param db - Database client used to query the catalog.
+ * @returns Every game with its related metadata, ordered alphabetically.
+ */
+export async function getAllGames(db: Database): Promise<Game[]> {
+    return getFilteredGames(db);
+}
+
+/**
+ * List all game IDs ordered by title.
+ *
+ * @param db - Database client used to query the catalog.
+ * @returns Game IDs in the same stable order as the catalog.
+ */
 export async function getAllGameIds(db: Database): Promise<number[]> {
     const rows = await db.select({ id: games.id }).from(games).orderBy(asc(games.title));
     return rows.map((row) => row.id);
 }
 
-/** A single game by id, or null when it does not exist. */
+/**
+ * Find one game by its ID.
+ *
+ * @param db - Database client used to query the catalog.
+ * @param id - Numeric game ID to look up.
+ * @returns The matching game, or null when no game exists with that ID.
+ */
 export async function getGameById(db: Database, id: number): Promise<Game | null> {
     const row = await baseGamesQuery(db).where(eq(games.id, id)).get();
     return row ? mapGame(row) : null;
