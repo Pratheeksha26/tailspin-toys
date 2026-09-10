@@ -1,6 +1,26 @@
 import { test, expect, type Response } from '@playwright/test';
 
 test.describe('Game Listing and Navigation', () => {
+  test('should filter games by title as the user types', async ({ page }) => {
+    await page.goto('/');
+
+    const searchInput = page.getByTestId('game-search-input');
+    await expect(searchInput).toHaveAccessibleName('Search games by title');
+
+    await searchInput.fill('devops');
+    await expect(page.locator('[data-testid="game-card"]:visible')).toHaveCount(1);
+    await expect(page.locator('[data-testid="game-title"]:visible')).toHaveText('DevOps Dominion');
+  });
+
+  test('should show an empty state when no games match the search', async ({ page }) => {
+    await page.goto('/');
+
+    await page.getByTestId('game-search-input').fill('does not exist');
+    await expect(page.getByTestId('search-empty-state')).toBeVisible();
+    await expect(page.getByTestId('search-empty-state').getByTestId('empty-state-text')).toHaveText('No games match your search.');
+    await expect(page.locator('[data-testid="game-card"]:visible')).toHaveCount(0);
+  });
+
   test('should display games with titles on index page', async ({ page }) => {
     await test.step('Navigate to homepage', async () => {
       await page.goto('/');
